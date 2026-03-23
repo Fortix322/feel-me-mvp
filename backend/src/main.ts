@@ -1,8 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { CONFIG_INJECT_KEY, ConfigType } from './config/app.config';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  const logger = new Logger('bootstrap');
+  const app = await NestFactory.create(AppModule, { logger });
+  const config = app.get(CONFIG_INJECT_KEY) as ConfigType;
+
+  await app.listen(config.port, () => {
+    logger.log(`Application started on port: ${config.port}`);
+  });
 }
-bootstrap();
+
+void bootstrap();
