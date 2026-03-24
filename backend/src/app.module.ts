@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppService } from './app.service';
-import { UserModule } from './modules/user/user.module';
-import { appConfig } from './config/app.config';
-import { DatabaseModule } from './database/database.module';
+import { AppService } from '@src/app.service';
+import { UserModule } from '@src/modules/user/user.module';
+import { appConfig } from '@src/config/app.config';
+import { DatabaseModule } from '@src/database/database.module';
+import { NotificationModule } from '@src/modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
     }),
     DatabaseModule,
     UserModule,
+    NotificationModule,
   ],
   providers: [AppService],
 })

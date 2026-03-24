@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { CONFIG_INJECT_KEY, ConfigType } from './config/app.config';
+import { CONFIG_INJECT_KEY, ConfigType } from '@src/config/app.config';
 import { Logger } from '@nestjs/common';
 
 async function bootstrap() {

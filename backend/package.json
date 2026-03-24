@@ -22,10 +22,16 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.17",
+    "@nestjs/websockets": "^11.1.17",
+    "@types/web-push": "^3.6.4",
+    "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import * as schema from './schema';
-import { CONFIG_INJECT_KEY, ConfigType } from 'src/config/app.config';
+import * as schema from '@src/database/schema';
+import { CONFIG_INJECT_KEY, ConfigType } from '@src/config/app.config';
 
 export const DRIZZLE = 'DRIZZLE';
 

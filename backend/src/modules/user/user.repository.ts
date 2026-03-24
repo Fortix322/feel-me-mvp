@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { DRIZZLE } from '../../database/database.module';
+import { DRIZZLE } from '@src/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import * as schema from '../../database/schema';
+import * as schema from '@src/database/schema';
 import { eq } from 'drizzle-orm';
 
 @Injectable()
@@ -11,8 +11,8 @@ export class UserRepository {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async createUser(email: string, partnerCode: string): Promise<schema.User> {
-    const [user] = await this.db
+  async createUser(email: string, partnerCode: string) {
+    const user = await this.db
       .insert(schema.users)
       .values({
         email,
@@ -22,21 +22,74 @@ export class UserRepository {
     return user;
   }
 
-  async findByEmail(email: string): Promise<schema.User | undefined> {
+  async findByEmail(email: string) {
     const [user] = await this.db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.email, email))
+      .where(eq(schema.users.email, email));
+    return user;
+  }
+
+  async findById(id: string) {
+    const [user] = await this.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, id))
       .limit(1);
     return user;
   }
 
-  async findByPartnerCode(partnerCode: string): Promise<schema.User | undefined> {
+  async updatePartner(userId: string, partnerId: string) {
+    await this.db
+      .update(schema.users)
+      .set({ partnerId })
+      .where(eq(schema.users.id, userId));
+  }
+
+  async findByPartnerCode(partnerCode: string) {
     const [user] = await this.db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.partnerCode, partnerCode))
-      .limit(1);
+      .where(eq(schema.users.partnerCode, partnerCode));
     return user;
+  }
+
+  async savePushSubscription(
+    userId: string,
+    subscription: { endpoint: string; p256dh: string; auth: string },
+  ): Promise<void> {
+    await this.db
+      .insert(schema.pushSubscriptions)
+      .values({
+        userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      })
+      .onConflictDoUpdate({
+        target: schema.pushSubscriptions.endpoint,
+        set: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+      });
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await this.db
+      .delete(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.endpoint, endpoint));
+  }
+
+  async getPartnerPushSubscriptions(
+    userId: string,
+  ): Promise<schema.PushSubscription[]> {
+    const user = await this.findById(userId);
+    if (!user || !user.partnerId) return [];
+
+    return this.db
+      .select()
+      .from(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.userId, user.partnerId));
   }
 }

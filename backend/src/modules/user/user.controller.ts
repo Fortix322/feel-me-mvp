@@ -1,12 +1,20 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { UserService } from './user.service';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { UserService } from '@modules/user/user.service';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('partner-code')
-  getPartnerCode(@Query('email') email: string) {
-    return this.userService.generatePartnerCode(email);
+  @Post('register')
+  register(@Body('email') email: string) {
+    return this.userService.register(email);
+  }
+
+  @Post('join-partner')
+  joinPartner(
+    @Body('userId') userId: string,
+    @Body('partnerCode') partnerCode: string,
+  ) {
+    return this.userService.joinPartner(userId, partnerCode);
   }
 }
