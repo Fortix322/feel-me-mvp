@@ -5,6 +5,7 @@ export const users = pgTable('users', {
   email: text('email').unique().notNull(),
   partnerCode: text('partner_code').notNull().unique(),
   partnerId: uuid('partner_id').references(() => users.id),
+  lastRomanticNotificationAt: timestamp('last_romantic_notification_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

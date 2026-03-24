@@ -54,6 +54,13 @@ export class UserRepository {
     return user;
   }
 
+  async updateLastNotificationAt(userId: string): Promise<void> {
+    await this.db
+      .update(schema.users)
+      .set({ lastRomanticNotificationAt: new Date() })
+      .where(eq(schema.users.id, userId));
+  }
+
   async savePushSubscription(
     userId: string,
     subscription: { endpoint: string; p256dh: string; auth: string },

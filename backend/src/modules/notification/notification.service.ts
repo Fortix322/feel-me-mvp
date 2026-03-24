@@ -1,10 +1,12 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
 import * as webpush from 'web-push';
 import { CONFIG_INJECT_KEY, type ConfigType } from '@src/config/app.config';
 import { UserRepository } from '@modules/user/user.repository';
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(
     @Inject(CONFIG_INJECT_KEY)
     private readonly config: ConfigType,
@@ -53,12 +55,14 @@ export class NotificationService implements OnModuleInit {
           if (err.statusCode === 410 || err.statusCode === 404) {
             // Subscription expired or revoked - Clean it up
             await this.deleteSubscription(sub.endpoint);
-            console.warn(
-              'Push subscription expired/invalid, deleted:',
-              sub.endpoint,
+            this.logger.warn(
+              `Push subscription expired/invalid, deleted: ${sub.endpoint}`,
             );
           } else {
-            console.error('Push notification error:', err);
+            this.logger.error(
+              `Push notification error: ${err.message}`,
+              err.stack,
+            );
           }
         }),
     );
