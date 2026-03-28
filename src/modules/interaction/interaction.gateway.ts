@@ -19,6 +19,7 @@ type UserState = {
   firstPulseAt: number;
   lastPulseAt: number;
   isHolding: boolean;
+  isInitiated: boolean;
 };
 
 @WebSocketGateway({
@@ -152,7 +153,12 @@ export class InteractionGateway
     const now = Date.now();
 
     if (!state) {
-      state = { firstPulseAt: now, lastPulseAt: now, isHolding: false };
+      state = {
+        firstPulseAt: now,
+        lastPulseAt: now,
+        isHolding: false,
+        isInitiated: false,
+      };
       this.userStates.set(userId, state);
       this.logger.debug(`Pulse started for ${userId}`);
 
@@ -205,8 +211,15 @@ export class InteractionGateway
       return;
     }
 
-    // Trigger WebRTC if both are officially HOLDING
-    if (state.isHolding && partnerState.isHolding) {
+    // Trigger WebRTC if both are officially HOLDING and not yet initiated
+    if (
+      state.isHolding &&
+      partnerState.isHolding &&
+      !state.isInitiated &&
+      !partnerState.isInitiated
+    ) {
+      state.isInitiated = true;
+      partnerState.isInitiated = true;
       this.initiateWebRTC(userId, user.partnerId, client.id, partnerSocketId);
     }
   }
@@ -262,6 +275,12 @@ export class InteractionGateway
 
     const user = await this.userRepository.findById(userId);
     if (user?.partnerId) {
+      // Reset partner's initiation state so they can reconnect later
+      const partnerState = this.userStates.get(user.partnerId);
+      if (partnerState) {
+        partnerState.isInitiated = false;
+      }
+
       const partnerSocketId = this.activeSessions.get(user.partnerId);
       if (partnerSocketId) {
         this.server.to(partnerSocketId).emit('partner:release');
