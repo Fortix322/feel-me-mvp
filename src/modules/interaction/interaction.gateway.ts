@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { RomanticNotificationService } from '@modules/notification/romantic-notification.service';
 import { UserRepository } from '@modules/user/user.repository';
+import { UserService } from '@modules/user/user.service';
 import { Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
 const HOLD_THRESHOLD_MS = 500;
@@ -47,6 +48,7 @@ export class InteractionGateway
   constructor(
     private readonly romanticNotificationService: RomanticNotificationService,
     private readonly userRepository: UserRepository,
+    private readonly userService: UserService,
   ) {}
 
   onModuleInit() {
@@ -74,6 +76,59 @@ export class InteractionGateway
     if (userId) {
       this.cleanupUser(userId);
       this.logger.log(`User disconnected: ${userId}`);
+    }
+  }
+
+  @SubscribeMessage('pairing:propose')
+  async handlePairingPropose(client: Socket, data: { partnerCode: string }) {
+    const requesterId = this.getUserIdBySocketId(client.id);
+    if (!requesterId) return;
+
+    const requester = await this.userRepository.findById(requesterId);
+    if (!requester) return;
+
+    const partner = await this.userRepository.findByPartnerCode(
+      data.partnerCode,
+    );
+    if (!partner || partner.id === requesterId) {
+      client.emit('pairing:error', { message: 'Invalid partner code' });
+      return;
+    }
+
+    if (partner.partnerId) {
+      client.emit('pairing:error', { message: 'Partner is already paired' });
+      return;
+    }
+
+    const partnerSocketId = this.activeSessions.get(partner.id);
+    if (partnerSocketId) {
+      this.server.to(partnerSocketId).emit('pairing:request', {
+        requesterId: requesterId,
+        email: requester.email,
+      });
+      client.emit('pairing:sent', { message: 'Request sent to your partner!' });
+    } else {
+      client.emit('pairing:error', { message: 'Partner is not online' });
+    }
+  }
+
+  @SubscribeMessage('pairing:confirm')
+  async handlePairingConfirm(client: Socket, data: { requesterId: string }) {
+    const ownerId = this.getUserIdBySocketId(client.id);
+    if (!ownerId) return;
+
+    try {
+      await this.userService.joinPartnerById(ownerId, data.requesterId);
+
+      const ownerSocketId = client.id;
+      const requesterSocketId = this.activeSessions.get(data.requesterId);
+
+      this.server.to(ownerSocketId).emit('pairing:success');
+      if (requesterSocketId) {
+        this.server.to(requesterSocketId).emit('pairing:success');
+      }
+    } catch (e: any) {
+      client.emit('pairing:error', { message: e.message });
     }
   }
 
@@ -131,12 +186,16 @@ export class InteractionGateway
     const user = await this.userRepository.findById(userId);
     if (!user?.partnerId) return;
 
-    const partnerState = this.userStates.get(user.partnerId);
     const partnerSocketId = this.activeSessions.get(user.partnerId);
+    if (!partnerSocketId) return;
 
-    if (!partnerState || !partnerSocketId) {
-      return;
-    }
+    // Always notify partner about your pulse
+    this.server.to(partnerSocketId).emit('partner:pulse', {
+      isHolding: state.isHolding,
+    });
+
+    const partnerState = this.userStates.get(user.partnerId);
+    if (!partnerState) return;
 
     const partnerIsStillPulsing =
       Date.now() - partnerState.lastPulseAt < CONNECTION_LOSS_THRESHOLD_MS;
@@ -145,11 +204,6 @@ export class InteractionGateway
       this.cleanupUserInteraction(user.partnerId);
       return;
     }
-
-    // Forward pulse to partner for real-time visual feedback
-    this.server.to(partnerSocketId).emit('partner:pulse', {
-      isHolding: state.isHolding,
-    });
 
     // Trigger WebRTC if both are officially HOLDING
     if (state.isHolding && partnerState.isHolding) {

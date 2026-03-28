@@ -6,12 +6,12 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('register')
-  register(@Body('email') email: string) {
+  async register(@Body('email') email: string) {
     return this.userService.register(email);
   }
 
   @Post('join-partner')
-  joinPartner(
+  async joinPartner(
     @Body('userId') userId: string,
     @Body('partnerCode') partnerCode: string,
   ) {

@@ -21,7 +21,7 @@ export class UserService {
 
     const { partnerCode } = this.generatePartnerCode(email);
     const user = await this.userRepository.createUser(email, partnerCode);
-    return user;
+    return user[0];
   }
 
   async joinPartner(userId: string, partnerCode: string) {
@@ -41,6 +41,25 @@ export class UserService {
     // Link both ways
     await this.userRepository.updatePartner(userId, partner.id);
     await this.userRepository.updatePartner(partner.id, userId);
+
+    return { success: true };
+  }
+
+  async joinPartnerById(userId: string, partnerId: string) {
+    const user = await this.userRepository.findById(userId);
+    const partner = await this.userRepository.findById(partnerId);
+
+    if (!user || !partner) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.partnerId || partner.partnerId) {
+      throw new BadRequestException('One of the users is already paired');
+    }
+
+    // Link both ways
+    await this.userRepository.updatePartner(userId, partnerId);
+    await this.userRepository.updatePartner(partnerId, userId);
 
     return { success: true };
   }
