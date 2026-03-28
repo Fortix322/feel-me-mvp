@@ -75,7 +75,8 @@ export class InteractionGateway
   handleDisconnect(client: Socket) {
     const userId = this.getUserIdBySocketId(client.id);
     if (userId) {
-      this.cleanupUser(userId);
+      this.cleanupUserInteraction(userId);
+      this.activeSessions.delete(userId);
       this.logger.log(`User disconnected: ${userId}`);
     }
   }
@@ -292,10 +293,5 @@ export class InteractionGateway
     return Array.from(this.activeSessions.entries()).find(
       ([_, id]) => id === socketId,
     )?.[0];
-  }
-
-  private cleanupUser(userId: string) {
-    this.userStates.delete(userId);
-    this.activeSessions.delete(userId);
   }
 }
