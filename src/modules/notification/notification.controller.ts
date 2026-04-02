@@ -5,6 +5,11 @@ import { NotificationService } from '@modules/notification/notification.service'
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
+  @Get('public-key')
+  getPublicKey() {
+    return this.notificationService.getPublicKey();
+  }
+
   @Post('subscribe')
   async subscribe(
     @Body('userId') userId: string,

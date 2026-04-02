@@ -21,6 +21,10 @@ export class NotificationService implements OnModuleInit {
     );
   }
 
+  getPublicKey() {
+    return { publicKey: this.config.vapidPublicKey };
+  }
+
   async saveSubscription(
     userId: string,
     subscription: { endpoint: string; p256dh: string; auth: string },
